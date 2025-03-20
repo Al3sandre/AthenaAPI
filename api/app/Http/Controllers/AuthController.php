@@ -52,8 +52,15 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        try {
+            // Supprimez le token d'accès actuel
+            $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Successfully logged out']);
+            // Retournez une réponse JSON réussie
+            return response()->json(['message' => 'Déconnexion réussie'], 200);
+        } catch (\Exception $e) {
+            // En cas d'erreur, retournez une réponse avec un code 500
+            return response()->json(['error' => 'Erreur lors de la déconnexion'], 500);
+        }
     }
 }

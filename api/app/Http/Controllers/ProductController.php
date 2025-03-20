@@ -20,6 +20,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'price' => 'required|numeric',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'stock' => 'required|integer|min:0', // Validation pour le stock
         ]);
 
         $imagePath = null;
@@ -32,6 +33,7 @@ class ProductController extends Controller
             'description' => $request->description,
             'price' => $request->price,
             'image' => $imagePath,
+            'stock' => $request->stock, // Ajout du stock
         ]);
 
         return response()->json(['message' => 'Product created successfully', 'product' => $product], 201);
@@ -45,12 +47,12 @@ class ProductController extends Controller
 
     public function update(Request $request, $id)
     {
-
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp',
+            'stock' => 'required|integer|min:0', // Validation pour le stock
         ]);
 
         $product = Product::findOrFail($id);
@@ -68,6 +70,7 @@ class ProductController extends Controller
             'description' => $request->description,
             'price' => $request->price,
             'image' => $product->image,
+            'stock' => $request->stock, // Mise à jour du stock
         ]);
 
         return response()->json(['message' => 'Product updated successfully', 'product' => $product], 200);
@@ -85,5 +88,24 @@ class ProductController extends Controller
         $product->delete();
 
         return response()->json(['message' => 'Product deleted successfully'], 200);
+    }
+    public function adjustStock(Request $request, $id)
+    {
+        $request->validate([
+            'quantity' => 'required|integer',
+        ]);
+
+        $product = Product::findOrFail($id);
+
+        $newStock = $product->stock + $request->quantity;
+
+        if ($newStock < 0) {
+            return response()->json(['error' => 'Stock insuffisant'], 400);
+        }
+
+        $product->stock = $newStock;
+        $product->save();
+
+        return response()->json(['message' => 'Stock ajusté avec succès', 'product' => $product], 200);
     }
 }

@@ -19,14 +19,19 @@ class UserController extends Controller
 
     public function show($id)
     {
-        $user = User::findOrFail($id);
+        $user = User::find($id);
 
-        if (Auth::user()->role === 'admin' || Auth::id() === $user->id) {
-            return $user;
+        if (!$user) {
+            return response()->json(['error' => 'Utilisateur introuvable'], 404);
+        }
+
+        if (Auth::check() && (Auth::user()->role === 'admin' || Auth::id() === $user->id)) {
+            return response()->json($user, 200);
         }
 
         return response()->json(['error' => 'Unauthorized'], 403);
     }
+
 
     public function update(Request $request, $id)
     {
