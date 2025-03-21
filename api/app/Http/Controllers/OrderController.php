@@ -11,7 +11,14 @@ class OrderController extends Controller
     {
         try {
             $orders = Order::with('items.product')->paginate(30); // Utilisez la pagination
-            return response()->json($orders, 200);
+
+            return response()->json([
+                'data' => $orders->items(), // Les commandes
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'per_page' => $orders->perPage(),
+                'total' => $orders->total(),
+            ], 200);
         } catch (\Exception $e) {
             \Log::error('Erreur lors de la récupération des commandes : ' . $e->getMessage());
             return response()->json(['error' => 'Erreur lors de la récupération des commandes.'], 500);

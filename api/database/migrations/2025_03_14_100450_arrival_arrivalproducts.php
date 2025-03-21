@@ -15,7 +15,7 @@ return new class () extends Migration {
         Schema::create('arrivals', function (Blueprint $table) {
             $table->id();
             $table->integer('amount');
-            $table->string('status');
+            $table->string('status')->default('en cours');
             $table->timestamps();
         });
 
