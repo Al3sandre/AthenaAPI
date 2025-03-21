@@ -20,7 +20,6 @@ class OrderController extends Controller
                 'total' => $orders->total(),
             ], 200);
         } catch (\Exception $e) {
-            \Log::error('Erreur lors de la récupération des commandes : ' . $e->getMessage());
             return response()->json(['error' => 'Erreur lors de la récupération des commandes.'], 500);
         }
     }
@@ -54,7 +53,6 @@ class OrderController extends Controller
             // Retournez la commande avec les items associés
             return response()->json($order->load('items'), 201);
         } catch (\Exception $e) {
-            \Log::error('Erreur lors de la création de la commande : ' . $e->getMessage());
             return response()->json(['error' => 'Erreur lors de la création de la commande.'], 500);
         }
     }
