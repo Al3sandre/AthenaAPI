@@ -10,7 +10,8 @@ class ProductController extends Controller
 {
     public function index()
     {
-        return response()->json(Product::all(), 200);
+        $products = Product::with('categories')->get(); // Charger les catégories liées
+        return response()->json($products, 200);
     }
 
     public function store(Request $request)
@@ -19,29 +20,46 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric',
+            'stock' => 'required|integer',
+            'categories' => 'required|array', // Valide que les catégories sont un tableau
+            'categories.*' => 'exists:categories,id', // Valide que chaque ID de catégorie existe
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'stock' => 'required|integer|min:0', // Validation pour le stock
+        ], [
+            'name.required' => 'Le nom du produit est obligatoire.',
+            'price.required' => 'Le prix du produit est obligatoire.',
+            'categories.*.exists' => 'Une ou plusieurs catégories sont invalides.',
         ]);
 
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('images', 'public');
+            try {
+                $imagePath = $request->file('image')->store('images', 'public');
+            } catch (\Exception $e) {
+                return response()->json(['error' => 'Erreur lors du téléchargement de l\'image'], 500);
+            }
         }
 
+        // Créer le produit
         $product = Product::create([
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
+            'stock' => $request->stock,
             'image' => $imagePath,
-            'stock' => $request->stock, // Ajout du stock
         ]);
 
-        return response()->json(['message' => 'Product created successfully', 'product' => $product], 201);
-    }
+        // Associer les catégories au produit
+        $product->categories()->attach($request->categories);
 
+        return response()->json([
+            'message' => 'Product created successfully',
+            'product' => $product,
+            'image_url' => $imagePath ? asset('storage/' . $imagePath) : null,
+        ], 201);
+    }
     public function show($id)
     {
-        $product = Product::findOrFail($id);
+        $product = Product::with('categories')->findOrFail($id); // Charger les catégories liées
         return response()->json($product, 200);
     }
 
@@ -51,29 +69,51 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric',
+            'stock' => 'required|integer|min:0',
+            'categories' => 'nullable|array', // Rendre le champ facultatif
+            'categories.*' => 'exists:categories,id', // Valide que chaque ID de catégorie existe
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp',
-            'stock' => 'required|integer|min:0', // Validation pour le stock
+        ], [
+            'name.required' => 'Le nom du produit est obligatoire.',
+            'price.required' => 'Le prix du produit est obligatoire.',
+            'categories.*.exists' => 'Une ou plusieurs catégories sont invalides.',
         ]);
 
         $product = Product::findOrFail($id);
 
+        // Gérer l'image
+        $imagePath = $product->image; // Conserver l'image existante par défaut
         if ($request->hasFile('image')) {
             // Supprimer l'ancienne image si elle existe
             if ($product->image) {
                 Storage::disk('public')->delete($product->image);
             }
-            $product->image = $request->file('image')->store('images', 'public');
+            try {
+                $imagePath = $request->file('image')->store('images', 'public');
+            } catch (\Exception $e) {
+                return response()->json(['error' => 'Erreur lors du téléchargement de l\'image'], 500);
+            }
         }
 
+        // Mettre à jour les champs du produit
         $product->update([
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
-            'image' => $product->image,
-            'stock' => $request->stock, // Mise à jour du stock
+            'stock' => $request->stock,
+            'image' => $imagePath,
         ]);
 
-        return response()->json(['message' => 'Product updated successfully', 'product' => $product], 200);
+        // Mettre à jour les catégories associées
+        if ($request->has('categories')) {
+            $product->categories()->sync($request->categories); // Synchroniser les catégories
+        }
+
+        return response()->json([
+            'message' => 'Product updated successfully',
+            'product' => $product->load('categories'), // Charger les catégories associées
+            'image_url' => $imagePath ? asset('storage/' . $imagePath) : null,
+        ], 200);
     }
 
     public function destroy($id)

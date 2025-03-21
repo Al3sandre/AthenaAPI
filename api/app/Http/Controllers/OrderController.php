@@ -9,13 +9,47 @@ class OrderController extends Controller
 {
     public function index()
     {
-        return Order::with('items.product')->get();
+        try {
+            $orders = Order::with('items.product')->paginate(30); // Utilisez la pagination
+            return response()->json($orders, 200);
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la récupération des commandes : ' . $e->getMessage());
+            return response()->json(['error' => 'Erreur lors de la récupération des commandes.'], 500);
+        }
     }
 
     public function store(Request $request)
     {
-        $order = Order::create($request->all());
-        return response()->json($order, 201);
+        try {
+            // Validez les données entrantes
+            $validated = $request->validate([
+                'user_id' => 'required|exists:users,id',
+                'total_amount' => 'required|numeric|min:0',
+                'status' => 'required|string',
+                'items' => 'required|array',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.price' => 'required|numeric|min:0',
+            ]);
+
+            // Créez la commande
+            $order = Order::create([
+                'user_id' => $validated['user_id'],
+                'total_amount' => $validated['total_amount'],
+                'status' => $validated['status'],
+            ]);
+
+            // Ajoutez les items à la commande
+            foreach ($validated['items'] as $item) {
+                $order->items()->create($item);
+            }
+
+            // Retournez la commande avec les items associés
+            return response()->json($order->load('items'), 201);
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la création de la commande : ' . $e->getMessage());
+            return response()->json(['error' => 'Erreur lors de la création de la commande.'], 500);
+        }
     }
 
     public function show($id)

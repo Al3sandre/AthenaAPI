@@ -9,6 +9,9 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * Enregistrement d'un nouvel utilisateur.
+     */
     public function register(Request $request)
     {
         $request->validate([
@@ -17,15 +20,28 @@ class AuthController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        try {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-        return response()->json($user, 201);
+            return response()->json([
+                'message' => 'Utilisateur enregistré avec succès.',
+                'user' => $user,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erreur lors de l\'enregistrement de l\'utilisateur.',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
     }
 
+    /**
+     * Connexion d'un utilisateur existant.
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -35,32 +51,39 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'error' => 'Les informations d\'identification fournies sont incorrectes.',
+            ], 401);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
+            'message' => 'Connexion réussie.',
             'access_token' => $token,
             'token_type' => 'Bearer',
             'user' => $user,
-        ]);
+        ], 200);
     }
 
+    /**
+     * Déconnexion de l'utilisateur.
+     */
     public function logout(Request $request)
     {
         try {
             // Supprimez le token d'accès actuel
             $request->user()->currentAccessToken()->delete();
 
-            // Retournez une réponse JSON réussie
-            return response()->json(['message' => 'Déconnexion réussie'], 200);
+            return response()->json([
+                'message' => 'Déconnexion réussie.',
+            ], 200);
         } catch (\Exception $e) {
-            // En cas d'erreur, retournez une réponse avec un code 500
-            return response()->json(['error' => 'Erreur lors de la déconnexion'], 500);
+            return response()->json([
+                'error' => 'Erreur lors de la déconnexion.',
+                'details' => $e->getMessage(),
+            ], 500);
         }
     }
 }
