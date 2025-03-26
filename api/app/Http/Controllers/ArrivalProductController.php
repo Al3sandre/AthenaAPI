@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ArrivalProduct;
 use Illuminate\Http\Request;
+use App\Models\Arrival;
 
 class ArrivalProductController extends Controller
 {
@@ -30,7 +31,17 @@ class ArrivalProductController extends Controller
 
     public function show($id)
     {
-        return ArrivalProduct::findOrFail($id);
+        // Récupérer l'arrivage avec les produits associés
+        $arrivalProducts = ArrivalProduct::with('product')
+            ->where('arrival_id', $id)
+            ->get();
+
+        // Vérifier si des produits sont trouvés pour cet arrivage
+        if ($arrivalProducts->isEmpty()) {
+            return response()->json(['message' => 'Aucun produit trouvé pour cet arrivage.'], 404);
+        }
+
+        return response()->json($arrivalProducts, 200);
     }
 
     public function update(Request $request, $id)
