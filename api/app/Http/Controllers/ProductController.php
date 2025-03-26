@@ -66,7 +66,7 @@ class ProductController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric',
             'stock' => 'required|integer|min:0',
@@ -115,7 +115,22 @@ class ProductController extends Controller
             'image_url' => $imagePath ? asset('storage/' . $imagePath) : null,
         ], 200);
     }
+    public function updateStock(Request $request, $id)
+    {
+        $validatedData = $request->validate([
+            'stock' => 'required|integer|min:0',
+        ], [
+            'stock.required' => 'Le stock est obligatoire.',
+            'stock.integer' => 'Le stock doit être un entier.',
+            'stock.min' => 'Le stock ne peut pas être négatif.',
+        ]);
 
+        $product = Product::findOrFail($id);
+        $product->stock = $validatedData['stock'];
+        $product->save();
+
+        return response()->json(['message' => 'Stock mis à jour avec succès.', 'product' => $product], 200);
+    }
     public function destroy($id)
     {
         $product = Product::findOrFail($id);

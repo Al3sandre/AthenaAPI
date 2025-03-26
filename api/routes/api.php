@@ -26,4 +26,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('order-items', OrderItemController::class);
     Route::apiResource("users", UserController::class);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::put('/products/{id}/stock', [ProductController::class, 'updateStock']);
 });

@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class () extends Migration {
     /**
@@ -21,6 +22,16 @@ return new class () extends Migration {
             $table->rememberToken();
             $table->timestamps();
         });
+
+        // Insérer un utilisateur par défaut
+        DB::table('users')->insert([
+            'name' => 'Admin User',
+            'email' => 'admin@admin.fr',
+            'password' => bcrypt('password'), // Hasher le mot de passe
+            'role' => 'admin',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
