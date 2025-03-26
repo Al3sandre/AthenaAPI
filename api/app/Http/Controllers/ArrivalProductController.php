@@ -14,7 +14,17 @@ class ArrivalProductController extends Controller
 
     public function store(Request $request)
     {
-        $arrivalProduct = ArrivalProduct::create($request->all());
+        // Validation des données
+        $validated = $request->validate([
+            'arrival_id' => 'required|exists:arrivals,id',
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => 'required|numeric|min:0', // Validation pour unit_price
+        ]);
+
+        // Création du produit dans l'arrivage
+        $arrivalProduct = ArrivalProduct::create($validated);
+
         return response()->json($arrivalProduct, 201);
     }
 

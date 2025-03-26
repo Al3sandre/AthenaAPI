@@ -9,24 +9,42 @@ class ArrivalController extends Controller
 {
     public function index()
     {
-        return Arrival::with('products')->get();
+        $arrivals = Arrival::with('products')->get();
+        return response()->json($arrivals);
     }
 
     public function store(Request $request)
     {
-        $arrival = Arrival::create($request->all());
+        // Validation des données
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0', // Champ obligatoire avec validation numérique
+            'status' => 'required|string', // Champ obligatoire avec validation de type string
+        ]);
+
+        // Création de l'arrivée
+        $arrival = Arrival::create($validated);
+
         return response()->json($arrival, 201);
     }
 
     public function show($id)
     {
-        return Arrival::with('products')->findOrFail($id);
+        $arrival = Arrival::with('products')->findOrFail($id);
+        return response()->json($arrival);
     }
 
     public function update(Request $request, $id)
     {
+        // Validation des données
+        $validated = $request->validate([
+            'amount' => 'sometimes|numeric|min:0', // Validation si le champ est présent
+            'status' => 'sometimes|string', // Validation si le champ est présent
+        ]);
+
+        // Mise à jour de l'arrivée
         $arrival = Arrival::findOrFail($id);
-        $arrival->update($request->all());
+        $arrival->update($validated);
+
         return response()->json($arrival, 200);
     }
 

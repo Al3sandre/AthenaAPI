@@ -14,6 +14,6 @@ class Arrival extends Model
 
     public function products()
     {
-        return $this->hasMany(ArrivalProduct::class);
+        return $this->hasMany(ArrivalProduct::class, 'arrival_id');
     }
 }
